@@ -1,8 +1,14 @@
-# RGSG - Random Good Seed Glitchless
+# FSG - Filtered Seed Glitchless
+
+In v 0.4.2 a memory leak was fixed so the code should run faster and crash less
+
+New in v 0.4.1 the bastion in pos/pos is now guaranteed (never basalt)
+
+New in v 0.4: for village spawns the ruined_portals are always above ground, just outside of the village (no further than coords 144, 144), and most importantly the portals always have at least 11 lava. There is a bastion in pos/pos (unless cancelled by basalt) and 1 fortress either pos/neg or neg/pos.
 
 This is a new category for speedrunners designed to capture the feel of RSG with seeds that are of a certain guaranteed quality without the pre-planned feel of SSG.
 
-In essence twitch streamers can be more entertaining by playing more seeds.
+In essence twitch streamers doing FSG can be more entertaining by finishing more seeds.
 
 Just hit the RUN button to get a never before run seed with good speedrun traits.
 
@@ -11,12 +17,12 @@ The key to this as a category is that the seeds are chosen using a cryptographic
 So when submitting a run please film the code running that generates your seed and start the world right after.
 
 The current "good seed" traits:
-  A village in the pos/pos quadrant of the overworld between 0 and 96 in both X and Z
-  A ruined_portal in the same area (0 to 96)
-  In the nether there is a structure close to 0,0 in all four quadrants these are all designed to be within 128 of 0,0 in each coordinate although in the negative dimensions they can't be produced with values between -64 and 0.
+  A village or shipwreck in the pos/pos quadrant of the overworld between 0 and 80 in both X and Z
+  A ruined_portal near (0 to 144 but not in the village)
+  Your spawn between -48 and 144 in both coordinates
+  In the nether there is a structure close to 0,0 in three quadrants (+/+, -/+, +/-) these are all designed to be within 128 of 0,0 in each coordinate although in the negative dimensions they can't be produced with values between -64 and 0.
 
-It is possible that if a bastion would have spawned and the biome ends up as a basalt delta then no structure will be near by in that quadrant.
-It is also possible to get 3 bastions of 3 fortresses.
+There will always be 1 or more bastions (pos/pos guaranteed) and exactly 1 fortress generated within 128 blocks of 0,0.
 
 No restrictions are made on the stronghold in anyway.
 
@@ -25,4 +31,4 @@ If you're interested in helping this category grow you can help in several ways:
   If you're a seed finder help improve the algorithm, attributes, and the balance between unpredictable and of sufficient quality.
   Help us specify the standards for the category to be serious enough.
 
-Special thanks to Matthew, Kaptain, Neil, Cubitect, Denry, and the seed finding community for their support3
+Special thanks to all of the Monkeys!

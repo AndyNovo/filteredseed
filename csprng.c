@@ -4,6 +4,7 @@
 #include <gcrypt.h>
 #define MAXBUFLEN 20000
 #include <string.h>
+#include "./minecraft_nether_gen_rs.h"
 
 void int64ToChar(unsigned char a[], int64_t n) {
   a[0] = (n >> 56) & 0xFF;
@@ -45,36 +46,123 @@ uint64_t rand64()
   return rv;
 }
 
-char netherchecker(uint64_t seed){
+// int netherStructureType(uint64_t seed, ){ //0 for fortress 1 for bastion
+//   unsigned long modulus = 1UL << 48;
+//   unsigned long AA = 341873128712;
+//   unsigned long BB = 132897987541;
+//   int64_t fakeseed = (seed + 30084232UL) ^ 0x5deece66dUL;
+//   int64_t chunkx = nextInt(&fakeseed, 31) % 23;
+//   int64_t chunkz = nextInt(&fakeseed, 31) % 23;
+//   return (nextInt(&fakeseed, 31) % 5)  < 2;
+// }
+
+char netherPrint(int64_t seed){ 
+  //return true if the nether is good (3 structures within -128 to 128 ignoring neg/neg) at 
   unsigned long modulus = 1UL << 48;
   unsigned long AA = 341873128712;
   unsigned long BB = 132897987541;
-  
-  //the structure in pos/pos quadrant is within 8*16 (128) of 0,0
-  if ( ( ( ( (0x5deece66dUL*((seed + 30084232UL) ^ 0x5deece66dUL) + 11) % modulus ) >> 17 ) % 23) > 8){
+  int bastionCount = 0;
+  int64_t fakeseed = (seed + 30084232UL) ^ 0x5deece66dUL;
+  int64_t chunkx = next(&fakeseed, 31) % 23;
+  int64_t chunkz = next(&fakeseed, 31) % 23;
+  int structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx > 8 || chunkz > 8){
     return 0;
   }
-  if (((( 0x5deece66dUL* (0x5deece66dUL*((seed + 30084232UL) ^ 0x5deece66dUL) + 11) + 11) % modulus ) >> 17 ) % 23 > 8){
+  printf("structure1: x %d z %d type %d\n", chunkx*16, chunkz*16, structureType);
+  fakeseed = (seed + 30084232UL - AA) ^ 0x5deece66dUL;
+  chunkx = next(&fakeseed, 31) % 23;
+  chunkz = next(&fakeseed, 31) % 23;
+  structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx < 19 || chunkz > 8 || structureType == 0){
+    return 0;
+  }
+  printf("structure2 neg/pos: x %d z %d type %d\n", chunkx*16 - 27*16, chunkz*16, structureType);
+
+  fakeseed = (seed + 30084232UL - BB) ^ 0x5deece66dUL;
+  chunkx = next(&fakeseed, 31) % 23;
+  chunkz = next(&fakeseed, 31) % 23;
+  structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx > 8 || chunkz < 19){
+    return 0;
+  }
+  printf("structure3 pos/neg: x %d z %d type %d\n", chunkx*16, chunkz*16 - 27*16, structureType);
+  if (bastionCount != 2){
     return 0;
   }
 
-  //now check the neg/pos quadrant (0 <= pos coord <= 128 and -128 <= neg coord <= -64 )
-  if ( ( ( ( (0x5deece66dUL*((seed + 30084232UL - AA) ^ 0x5deece66dUL) + 11) % modulus ) >> 17 ) % 23) < 19){
+  return 1;
+}
+
+char bastionbiome(uint64_t seed){
+  unsigned long modulus = 1ULL << 48;
+  int64_t fakeseed = (seed + 30084232ULL) ^ 0x5deece66dUL;
+  int64_t chunkx = next(&fakeseed, 31) % 23;
+  int64_t chunkz = next(&fakeseed, 31) % 23;
+  NetherGen* netherGen=create_new_nether(seed);
+  NetherBiomes biome=get_biome(netherGen,chunkx*16,60,chunkz*16);
+/*  if (biome==NetherWastes){
+    printf("Bastion1: Wastes!\n");
+  }
+  if (biome==SoulSandValley){
+    printf("Bastion1: SoulSand\n");
+  }
+  if (biome==CrimsonForest){
+    printf("Bastion1: Crimson\n");
+  }
+  if (biome==WarpedForest){
+    printf("Bastion1: Warped\n");
+  }*/
+  if (biome==BasaltDeltas){
+    //printf("Bastion1: Basalt...\n");
+    delete(netherGen);
     return 0;
   }
-  if (((( 0x5deece66dUL* (0x5deece66dUL*((seed + 30084232UL - AA) ^ 0x5deece66dUL) + 11) + 11) % modulus ) >> 17 ) % 23 > 8){
+  delete(netherGen);
+  return 1;
+}
+
+//simplex / stack layers / points
+char netherchecker(uint64_t seed){ 
+  //return true if the nether is good (3 structures within -128 to 128 ignoring neg/neg) at 
+  unsigned long modulus = 1ULL << 48;
+  unsigned long AA = 341873128712;
+  unsigned long BB = 132897987541;
+  int bastionCount = 0;
+  int64_t fakeseed = (seed + 30084232ULL) ^ 0x5deece66dUL;
+  int64_t chunkx = next(&fakeseed, 31) % 23;
+  int64_t chunkz = next(&fakeseed, 31) % 23;
+  int structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx > 8 || chunkz > 8 || structureType == 0){
     return 0;
   }
 
-    //now check the pos/neg quadrant (0 <= pos coord <= 128 and -128 <= neg coord <= -64 )
-  if ( ( ( ( (0x5deece66dUL*((seed + 30084232UL - BB) ^ 0x5deece66dUL) + 11) % modulus ) >> 17 ) % 23) > 8){
-    return 0;
-  }
-  if (((( 0x5deece66dUL* (0x5deece66dUL*((seed + 30084232UL - BB) ^ 0x5deece66dUL) + 11) + 11) % modulus ) >> 17 ) % 23 < 19){
+  fakeseed = (seed + 30084232UL - AA) ^ 0x5deece66dUL;
+  chunkx = next(&fakeseed, 31) % 23;
+  chunkz = next(&fakeseed, 31) % 23;
+  structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx < 19 || chunkz > 8){
     return 0;
   }
 
-  //not bothering with the neg/neg quadrant
+  fakeseed = (seed + 30084232UL - BB) ^ 0x5deece66dUL;
+  chunkx = next(&fakeseed, 31) % 23;
+  chunkz = next(&fakeseed, 31) % 23;
+  structureType = (next(&fakeseed, 31) % 5)  >= 2;
+  bastionCount += structureType;
+  if (chunkx > 8 || chunkz < 19){
+    return 0;
+  }
+
+  if (bastionCount != 2){
+    return 0;
+  }
+
   return 1;
 }
 
@@ -83,7 +171,7 @@ int validateSeed(uint64_t seed){
 }
 
 int main () {
-    printf("Finding you a random good seed for RGSG category... v 0.2 \n");
+    printf("Filtering seeds for FSG category... v 0.4.2 \n");
     FILE *fp = fopen("csprng.c","rb"); //Uses SHA256 of this source code for key
     char source[MAXBUFLEN + 1];
     if (fp != NULL) {
@@ -156,7 +244,7 @@ int main () {
     unsigned char * encBuffer = malloc(txtLength+1);
     unsigned char * textBuffer = malloc(txtLength+1);
     memset(textBuffer, 0, 9);
-    int ii;
+    int ii, ss;
 
     int has_lower = 0;
     uint64_t lower48 = 0;
@@ -168,14 +256,41 @@ int main () {
     // Note that some structure configs changed with the Minecraft versions.
     const StructureConfig sconf = VILLAGE_CONFIG;
     const StructureConfig sconf_portal = RUINED_PORTAL_CONFIG;
+    const StructureConfig sconf_shipwreck = SHIPWRECK_CONFIG;
     int mc = MC_1_16;
-
+    unsigned long modulus = 1UL << 48;
     LayerStack g;
     setupGenerator(&g, mc);
     int valid;
     Pos p;
     int valid2;
     Pos p2;
+    int valid3;
+    Pos p3;
+    Pos spawn;
+    int shipModulus = 20;
+    int64_t fakeseed = 0;
+    int64_t carvea = 0;
+    int64_t carveb = 0;
+    int goodVillage = 0;
+    int goodShipwreck = 0;
+    int mainStructureValid = 0;
+    int shipBiome = -1;
+    int portBiome = -1;
+    int shipchunkx=-1;
+    int shipchunkz=-1;
+    int shiptype = -1;
+    int portcx = -1;
+    int portcz = -1;
+    float portOceanY = 0.0;
+    int portOceanType = -1;
+    float portNormalY = 0.0;
+    int portNormalType = -1;
+    int portModulus = 10;
+    int validPort = -1;
+    int portBig = -1;
+    int portType = -1;
+  
     for(ii=0; is_done < 1; ii++){
       gcryError = gcry_cipher_encrypt(
           gcryCipherHd, // gcry_cipher_hd_t
@@ -192,30 +307,141 @@ int main () {
       }
       seedcounter++;
       seed = charTo64bitNum(encBuffer);
-      if (seedcounter % 100000 == 0){
-        printf("tested %d seeds so far\n", seedcounter);
-      }
       if (has_lower < 1){
         lower48 = seed >> 16;
-        p = getStructurePos(sconf, lower48, 0, 0, &valid);
-        // The structure position depends only on the region coordinates and
-        // the lower 48-bits of the world seed.
-        p2 = getStructurePos(sconf_portal, lower48, 0, 0, &valid);
-
-        // Look for a seed with the structures at the origin chunk.
-        if (!valid || p.x >= 96 || p.z >= 96 || p2.x >= 96 || p2.z >= 96 || !netherchecker(lower48) ){
+        p2 = getStructurePos(sconf_portal, lower48, 0, 0, &valid2);
+        goodVillage = 0;
+        goodShipwreck = 0;
+        mainStructureValid = 0;
+        shipBiome = -1;
+        portBiome = -1;
+        validPort = -1;
+        if (!netherchecker(lower48) || !valid2 || (p2.x <= 80 && p2.z <= 80) || p2.x >= 144 || p2.z >= 144 ){ 
+          //either no portal or nether sucks
           has_lower = 0;
-        } else {
-          has_lower = seedcounter;
+        } else { //valid nethers AND close portals here
+          
+          portcx = p2.x >> 4;
+          portcz = p2.z >> 4;
+          fakeseed = (lower48) ^ 0x5deece66dL;
+          carvea = nextLong(&fakeseed);
+          carveb = nextLong(&fakeseed);
+          fakeseed = ((portcx * carvea) ^ (portcz * carveb) ^ lower48) ^ 0x5deece66dL;
+          fakeseed = fakeseed & 0xFFFFFFFFFFFF;
+          portOceanY = nextFloat(&fakeseed);
+          portOceanType = next(&fakeseed, 31); //raw not mod
+          portNormalY = nextFloat(&fakeseed);
+          portNormalType = next(&fakeseed, 31); //raw not mod
+          
+          //carver seed set
+          if (portOceanY < .5){
+            has_lower = 0;
+            //restart here underground portal
+          } else {
+            p = getStructurePos(sconf, lower48, 0, 0, &valid);
+            p3 = getStructurePos(sconf_shipwreck, lower48, 0, 0, &valid3);
+            if (!valid || p.x >= 96 || p.z >= 96){
+              goodVillage = 0;
+            } else {
+              goodVillage = 1;
+            }
+            if (!valid3 || p3.x >= 96 || p3.z >= 96){
+              goodShipwreck = 0;
+            } else {
+              goodShipwreck = 1;
+            }
+
+            if (goodShipwreck > 0 || goodVillage > 0){
+              has_lower = seedcounter;
+            } else {
+              has_lower = 0;
+            }
+          }
         }
       } else {
         upper16 = seed >> 48;
         seed = lower48 | (upper16 << 48);
-        if (isViableStructurePos(sconf.structType, mc, &g, seed, p.x, p.z) 
-            && isViableStructurePos(sconf_portal.structType, mc, &g, seed, p2.x, p2.z)){
-          is_done = 1;
-          printf("Seed %ld is a good seed (close vilage, close nether portal, 3ish close nether structures).\n", seed);
-          printf("Examined %d seeds took lower after %d seeds\n", seedcounter, has_lower);
+        applySeed(&g, seed);
+        mainStructureValid = 0;
+        if (isViableStructurePos(sconf_portal.structType, mc, &g, seed, p2.x, p2.z)){ //always a portal
+          portBiome = getBiomeAtPos(&g, p2);
+          validPort = -1;
+          if (isOceanic(portBiome) || portBiome == desert || portBiome == desert_hills || portBiome == swamp || portBiome == swamp_hills){
+            // set Port Type for validation
+            if (portOceanY < .05){
+              portBig = 1;
+              portType = portOceanType % 3;
+            } else {
+              portBig = 0;
+              portType = portOceanType % 10;
+            }
+          } else {
+            // set Port Type for validation 
+            if (portNormalY < .05){
+              portBig = 1;
+              portType = portNormalType % 3;
+            } else {
+              portBig = 0;
+              portType = portNormalType % 10;
+            }
+          }
+          if ((portBig == 0) && ( portType == 0 || portType == 2 || portType == 3 || portType == 4 || portType == 5 || portType ==8 )) { //nether filter fails
+            mainStructureValid = 0;
+            has_lower = 0;
+          } else { //nether filter passed
+            if ((goodVillage > 0) && isViableStructurePos(sconf.structType, mc, &g, seed, p.x, p.z)){
+              mainStructureValid = 1;
+            } else {
+              if ((goodShipwreck > 0) && isViableStructurePos(sconf_shipwreck.structType, mc, &g, seed, p3.x, p3.z)){
+                mainStructureValid = 2;
+                shipBiome = getBiomeAtPos(&g, p3);
+                if (isOceanic(shipBiome)){
+                  shipModulus = 20;
+                } else {
+                  shipModulus = 11;
+                }
+                shipchunkx = p3.x >> 4;
+                shipchunkz = p3.z >> 4;
+                fakeseed = (seed) ^ 0x5deece66dL;
+                carvea = nextLong(&fakeseed);
+                carveb = nextLong(&fakeseed);
+                fakeseed = ((shipchunkx * carvea) ^ (shipchunkz * carveb) ^ seed) ^ 0x5deece66dL;
+                fakeseed = fakeseed & 0xFFFFFFFFFFFF;
+                fakeseed = (0x5deece66dUL*fakeseed + 11) % modulus ;
+                fakeseed = (0x5deece66dUL*fakeseed + 11) % modulus ;
+                shiptype = (fakeseed >> 17) % shipModulus;
+                if (shipModulus == 20){
+                  if (shiptype == 2 || shiptype == 5 || shiptype == 8 || shiptype == 12 || shiptype == 15 || shiptype == 18){
+                    mainStructureValid = 0;
+                    has_lower = 0;
+                  }
+                }
+                if (shipModulus == 11){
+                  if (shiptype == 2 || shiptype == 5 || shiptype == 9 || shiptype == 11){
+                    mainStructureValid = 0;
+                    has_lower = 0;
+                  }
+                } //note: if performance tweaking needed just presume ocean, 
+                  //check in lower48, filter stronger later
+              } else {
+                mainStructureValid = 0;
+              }
+            }
+          }
+        }
+        if (mainStructureValid > 0 && bastionbiome(seed) > 0){
+          spawn = getSpawn(mc, &g, NULL, seed);
+          if (spawn.x >= -48 && spawn.x <= 144 && spawn.z >= -48 && spawn.z <= 144){
+            is_done = 1;
+            if (mainStructureValid == 1){
+              printf("Village Spawn\n");
+            }
+            if (mainStructureValid == 2){
+              printf("Shipwreck Spawn\n");
+            }
+            printf("Seed %ld\n", seed);
+            printf("Examined %d seeds took lower after %d seeds\n", seedcounter, has_lower);            
+          }
         }
       }
     }
