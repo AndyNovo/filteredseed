@@ -1,5 +1,7 @@
 # FSG - Filtered Seed Glitchless
 
+In v 0.5 blind travel filters were added and one nether structure removed.  Bastion in pos/pos, fortress either pos/neg or neg/pos and stronghold within 300 blocks of either 1200,-1200 or -1200,1200 (matching the fortress).
+
 In v 0.4.2 a memory leak was fixed so the code should run faster and crash less
 
 New in v 0.4.1 the bastion in pos/pos is now guaranteed (never basalt)
